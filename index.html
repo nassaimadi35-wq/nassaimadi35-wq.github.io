@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shimaore App - Pages légales</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f172a;
+      --card: rgba(255,255,255,.08);
+      --text: #e5eefc;
+      --muted: #b6c2d6;
+      --accent: #7c9cff;
+      --border: rgba(255,255,255,.12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(circle at top, #1f2a56 0, var(--bg) 60%);
+      color: var(--text);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    main {
+      width: min(720px, 100%);
+      padding: 28px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--card);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 18px 60px rgba(0,0,0,.25);
+    }
+    h1 { margin: 0 0 8px; font-size: 2rem; }
+    p { line-height: 1.5; color: var(--muted); }
+    .links {
+      margin-top: 24px;
+      display: grid;
+      gap: 12px;
+    }
+    a.card {
+      display: block;
+      padding: 16px 18px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      color: var(--text);
+      text-decoration: none;
+      background: rgba(255,255,255,.06);
+    }
+    a.card strong { display: block; color: #fff; margin-bottom: 4px; }
+    a.card span { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Shimaore App</h1>
+    <p>Pages légales et de support à publier pour App Store Connect.</p>
+
+    <div class="links">
+      <a class="card" href="./privacy-policy.html">
+        <strong>Politique de confidentialité</strong>
+        <span>Ce que l’application collecte, comment les données sont utilisées et conservées.</span>
+      </a>
+      <a class="card" href="./support.html">
+        <strong>Support</strong>
+        <span>Coordonnées et aide utilisateur.</span>
+      </a>
+    </div>
+  </main>
+</body>
+</html>
