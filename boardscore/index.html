@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BoardScore</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0b1220;
+      --panel: rgba(255,255,255,.08);
+      --text: #edf3ff;
+      --muted: #b5c1d8;
+      --border: rgba(255,255,255,.12);
+      --accent: #7c9cff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(180deg, #111c33 0%, var(--bg) 100%);
+      color: var(--text);
+      padding: 24px;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    main {
+      width: min(680px, 100%);
+      padding: 32px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      backdrop-filter: blur(18px);
+      text-align: center;
+    }
+    h1 { margin: 0 0 8px; font-size: 2.2rem; }
+    p { line-height: 1.6; color: var(--muted); }
+    .links { margin-top: 24px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .links a {
+      display: inline-block;
+      padding: 12px 20px;
+      border-radius: 14px;
+      background: rgba(124,156,255,.14);
+      border: 1px solid rgba(124,156,255,.3);
+      color: var(--text);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>BoardScore</h1>
+    <p>Enregistrez et suivez les scores de vos jeux de société : joueurs, parties, classements, statistiques et tirages au sort. Simple, rapide, 100 % hors ligne.</p>
+    <div class="links">
+      <a href="./support.html">Support</a>
+      <a href="./privacy.html">Confidentialité</a>
+    </div>
+  </main>
+</body>
+</html>
