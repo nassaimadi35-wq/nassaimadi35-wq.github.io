@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Contrôle PC à distance</title>
+<style>
+  :root {
+    --bg: #0f172a; --panel: #1e293b; --text: #e5eefc; --muted: #94a3b8;
+    --accent: #7c9cff; --on: #22c55e; --border: rgba(255,255,255,.14);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif; overscroll-behavior: none; }
+
+  /* --- Écran de connexion --- */
+  #login { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px;
+    background: radial-gradient(circle at top, #1f2a56 0, var(--bg) 60%); z-index: 30; }
+  #login form { width: min(380px, 100%); background: var(--panel); border: 1px solid var(--border);
+    border-radius: 18px; padding: 26px; display: grid; gap: 14px; }
+  #login h1 { margin: 0; font-size: 1.35rem; }
+  #login p { margin: 0; color: var(--muted); font-size: .9rem; line-height: 1.45; }
+  #login input { padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border);
+    background: #0b1222; color: var(--text); font-size: 1rem; }
+  #login button { padding: 12px; border-radius: 10px; border: 0; background: var(--accent);
+    color: #0b1222; font-weight: 700; font-size: 1rem; }
+  #loginError { color: #f87171; font-size: .85rem; min-height: 1.1em; margin: 0; }
+
+  /* --- Session --- */
+  #session { position: fixed; inset: 0; display: none; flex-direction: column; }
+  #viewWrap { flex: 1; min-height: 0; display: grid; place-items: center; background: #000;
+    touch-action: none; }
+  #view { max-width: 100%; max-height: 100%; touch-action: none; }
+
+  #bar { display: flex; gap: 6px; padding: 6px; background: var(--panel);
+    border-top: 1px solid var(--border); overflow-x: auto; flex-wrap: nowrap; }
+  #bar button { flex: 0 0 auto; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border);
+    background: #0b1222; color: var(--text); font-size: .85rem; }
+  #bar button.active { background: var(--on); color: #052e12; border-color: var(--on); font-weight: 700; }
+
+  #status { position: fixed; top: 8px; left: 8px; right: 8px; display: flex; justify-content: space-between;
+    pointer-events: none; font-size: .72rem; color: var(--muted); z-index: 10; }
+  #kbinput { position: fixed; top: -60px; left: 0; width: 10px; height: 10px; opacity: 0.01; }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <form id="loginForm">
+    <h1>🖥️ Contrôle PC à distance</h1>
+    <p>Entrez le mot de passe affiché dans la fenêtre du serveur sur votre PC.</p>
+    <input id="password" type="password" placeholder="Mot de passe" autocomplete="current-password" required>
+    <p id="loginError"></p>
+    <button type="submit">Se connecter</button>
+    <p>Astuce : un appui long = clic droit, deux doigts = défilement,
+       le bouton « Glisser » permet le glisser-déposer.</p>
+  </form>
+</div>
+
+<div id="session">
+  <div id="status"><span id="statConn">●</span><span id="statInfo"></span></div>
+  <div id="viewWrap"><canvas id="view"></canvas></div>
+  <div id="bar">
+    <button id="btnKb">⌨️ Clavier</button>
+    <button id="btnDrag">✊ Glisser</button>
+    <button data-mod="Control">Ctrl</button>
+    <button data-mod="Alt">Alt</button>
+    <button data-mod="Shift">Maj</button>
+    <button data-mod="Meta">Win</button>
+    <button data-press="Escape">Échap</button>
+    <button data-press="Tab">Tab</button>
+    <button data-press="Enter">Entrée</button>
+    <button data-press="Backspace">⌫</button>
+    <button data-press="ArrowUp">↑</button>
+    <button data-press="ArrowDown">↓</button>
+    <button data-press="ArrowLeft">←</button>
+    <button data-press="ArrowRight">→</button>
+    <button id="btnFull">⛶</button>
+  </div>
+</div>
+
+<input id="kbinput" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const canvas = $("view"), ctx = canvas.getContext("2d");
+  let ws = null, remoteW = 0, remoteH = 0, frames = 0;
+
+  // ---------- Connexion ----------
+  $("loginForm").addEventListener("submit", e => {
+    e.preventDefault();
+    connect($("password").value);
+  });
+
+  function connect(password) {
+    $("loginError").textContent = "";
+    const proto = location.protocol === "https:" ? "wss" : "ws";
+    ws = new WebSocket(`${proto}://${location.host}/ws`);
+    ws.binaryType = "arraybuffer";
+
+    ws.onopen = () => ws.send(JSON.stringify({ t: "auth", password }));
+
+    ws.onmessage = async ev => {
+      if (typeof ev.data === "string") {
+        const msg = JSON.parse(ev.data);
+        if (msg.t === "auth") {
+          if (!msg.ok) { $("loginError").textContent = "Mot de passe incorrect."; ws.close(); return; }
+          remoteW = msg.w; remoteH = msg.h;
+          $("login").style.display = "none";
+          $("session").style.display = "flex";
+          $("statConn").style.color = "#22c55e";
+          $("statConn").textContent = "● connecté";
+        }
+        return;
+      }
+      try {
+        const bmp = await createImageBitmap(new Blob([ev.data], { type: "image/jpeg" }));
+        if (canvas.width !== bmp.width) { canvas.width = bmp.width; canvas.height = bmp.height; }
+        ctx.drawImage(bmp, 0, 0);
+        bmp.close();
+        frames++;
+      } catch (_) { /* image incomplète, on ignore */ }
+    };
+
+    ws.onclose = () => {
+      $("statConn").style.color = "#f87171";
+      $("statConn").textContent = "● déconnecté — rechargez la page";
+      if ($("session").style.display === "none")
+        $("loginError").textContent ||= "Connexion impossible au serveur.";
+    };
+  }
+
+  setInterval(() => { $("statInfo").textContent = frames + " img/s"; frames = 0; }, 1000);
+
+  const send = obj => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); };
+
+  // ---------- Coordonnées tactiles -> écran distant ----------
+  function norm(touch) {
+    const r = canvas.getBoundingClientRect();
+    return {
+      x: Math.min(Math.max((touch.clientX - r.left) / r.width, 0), 1),
+      y: Math.min(Math.max((touch.clientY - r.top) / r.height, 0), 1),
+    };
+  }
+
+  // ---------- Gestes ----------
+  let dragMode = false, dragging = false;
+  let startPos = null, startTime = 0, moved = false, longPressTimer = null;
+  let lastTapTime = 0, lastTapPos = null;
+  let scrollAccum = 0, lastScrollY = null;
+
+  const wrap = $("viewWrap");
+
+  wrap.addEventListener("touchstart", e => {
+    e.preventDefault();
+    if (e.touches.length === 2) {
+      clearTimeout(longPressTimer);
+      lastScrollY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      return;
+    }
+    const p = norm(e.touches[0]);
+    startPos = p; startTime = Date.now(); moved = false;
+    if (dragMode) {
+      dragging = true;
+      send({ t: "mousedown", x: p.x, y: p.y, button: "left" });
+      return;
+    }
+    longPressTimer = setTimeout(() => {
+      send({ t: "click", x: p.x, y: p.y, button: "right" });
+      navigator.vibrate && navigator.vibrate(30);
+      startPos = null; // évite le clic gauche au relâchement
+    }, 600);
+  }, { passive: false });
+
+  wrap.addEventListener("touchmove", e => {
+    e.preventDefault();
+    if (e.touches.length === 2) {
+      const y = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      if (lastScrollY !== null) {
+        scrollAccum += lastScrollY - y;
+        const notches = Math.trunc(scrollAccum / 25);
+        if (notches !== 0) { send({ t: "scroll", dx: 0, dy: -notches }); scrollAccum -= notches * 25; }
+      }
+      lastScrollY = y;
+      return;
+    }
+    const p = norm(e.touches[0]);
+    if (startPos && (Math.abs(p.x - startPos.x) > 0.01 || Math.abs(p.y - startPos.y) > 0.015)) {
+      moved = true;
+      clearTimeout(longPressTimer);
+    }
+    send({ t: "move", x: p.x, y: p.y });
+  }, { passive: false });
+
+  wrap.addEventListener("touchend", e => {
+    e.preventDefault();
+    clearTimeout(longPressTimer);
+    if (e.touches.length > 0) { lastScrollY = null; return; }
+    lastScrollY = null;
+    if (dragging) {
+      dragging = false;
+      send({ t: "mouseup", button: "left" });
+      setDragMode(false);
+      return;
+    }
+    if (startPos && !moved && Date.now() - startTime < 350) {
+      const now = Date.now();
+      const isDouble = lastTapPos && now - lastTapTime < 320 &&
+        Math.abs(startPos.x - lastTapPos.x) < 0.03 && Math.abs(startPos.y - lastTapPos.y) < 0.04;
+      send({ t: "click", x: startPos.x, y: startPos.y, button: "left", count: isDouble ? 2 : 1 });
+      lastTapTime = now; lastTapPos = startPos;
+    }
+    startPos = null;
+  }, { passive: false });
+
+  // ---------- Barre d'outils ----------
+  function setDragMode(on) {
+    dragMode = on;
+    $("btnDrag").classList.toggle("active", on);
+  }
+  $("btnDrag").addEventListener("click", () => setDragMode(!dragMode));
+
+  document.querySelectorAll("[data-press]").forEach(btn =>
+    btn.addEventListener("click", () => send({ t: "press", key: btn.dataset.press })));
+
+  document.querySelectorAll("[data-mod]").forEach(btn =>
+    btn.addEventListener("click", () => {
+      const on = !btn.classList.contains("active");
+      btn.classList.toggle("active", on);
+      send({ t: "key", key: btn.dataset.mod, down: on });
+    }));
+
+  $("btnFull").addEventListener("click", () => {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen().catch(() => {});
+  });
+
+  // ---------- Clavier du téléphone ----------
+  const kb = $("kbinput");
+  $("btnKb").addEventListener("click", () => {
+    if (document.activeElement === kb) { kb.blur(); $("btnKb").classList.remove("active"); }
+    else { kb.focus(); $("btnKb").classList.add("active"); }
+  });
+
+  kb.addEventListener("beforeinput", e => {
+    e.preventDefault();
+    if (e.inputType === "insertText" || e.inputType === "insertCompositionText") {
+      if (e.data) send({ t: "text", text: e.data });
+    } else if (e.inputType === "insertLineBreak") {
+      send({ t: "press", key: "Enter" });
+    } else if (e.inputType === "deleteContentBackward") {
+      send({ t: "press", key: "Backspace" });
+    }
+  });
+  kb.addEventListener("keydown", e => {
+    // Secours pour les claviers qui n'émettent pas beforeinput correctement
+    if (e.key === "Enter" || e.key === "Backspace") {
+      e.preventDefault();
+      send({ t: "press", key: e.key });
+    }
+  });
+  kb.addEventListener("input", () => { kb.value = ""; });
+  kb.addEventListener("blur", () => $("btnKb").classList.remove("active"));
+})();
+</script>
+</body>
+</html>
