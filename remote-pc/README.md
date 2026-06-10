@@ -13,7 +13,25 @@ Deux parties :
    téléphone, ouvrez l'adresse du serveur dans Chrome/Safari : aucune
    application à installer.
 
-## Installation (sur le PC à contrôler)
+## Installation automatique en 1 commande (recommandé)
+
+Sur le PC à contrôler :
+
+- **Windows** — ouvrez PowerShell (menu Démarrer → tapez « PowerShell ») et collez :
+  ```powershell
+  irm https://raw.githubusercontent.com/nassaimadi35-wq/nassaimadi35-wq.github.io/claude/remote-pc-control-app-rgbmo9/remote-pc/installer.ps1 | iex
+  ```
+- **macOS / Linux** — ouvrez le Terminal et collez :
+  ```bash
+  curl -fsSL https://raw.githubusercontent.com/nassaimadi35-wq/nassaimadi35-wq.github.io/claude/remote-pc-control-app-rgbmo9/remote-pc/installer.sh | bash
+  ```
+
+L'installateur télécharge l'application dans `RemotePC/`, installe Python
+(Windows) et les dépendances, crée un raccourci sur le Bureau (Windows) et
+démarre le serveur. L'adresse à ouvrir sur le téléphone et le mot de passe
+s'affichent à la fin.
+
+## Installation manuelle
 
 1. Installez [Python 3.9+](https://www.python.org/downloads/)
    (sous Windows, cochez **« Add Python to PATH »**).
